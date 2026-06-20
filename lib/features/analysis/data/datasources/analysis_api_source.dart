@@ -8,7 +8,7 @@ class AnalysisApiSource implements AnalysisRemoteSource {
   final String baseUrl;
   final http.Client _client;
 
-  AnalysisApiSource({this.baseUrl = 'http://10.0.2.2:8000'})
+  AnalysisApiSource({this.baseUrl = 'https://instacheck-backend-mfm5.onrender.com'})
       : _client = http.Client();
 
   @override
