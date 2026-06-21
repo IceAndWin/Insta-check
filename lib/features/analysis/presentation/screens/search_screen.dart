@@ -258,67 +258,38 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
       children: [
         GlassCard(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 4),
               ProfileAvatar(
                 imageUrl: profile.profilePicUrl,
                 size: 96,
                 initials: profile.username[0],
               ),
-              const SizedBox(height: 18),
-              GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: profile.username));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(t('follow.copied')),
-                      duration: const Duration(seconds: 1),
-                    ),
-                  );
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      profile.username,
-                      textAlign: TextAlign.center,
-                      style: AppTypography.h3.copyWith(
-                        color: isDark ? AppColors.darkText : AppColors.lightText,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Icon(Icons.copy_rounded, size: 14, color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext),
-                  ],
+              const SizedBox(height: 16),
+              Text(
+                profile.username,
+                style: AppTypography.h3.copyWith(
+                  color: isDark ? AppColors.darkText : AppColors.lightText,
                 ),
               ),
-              if ((profile.fullName as String).trim().isNotEmpty) ...[
-                const SizedBox(height: 6),
+              const SizedBox(height: 4),
+              Text(
+                profile.fullName,
+                style: AppTypography.body.copyWith(
+                  color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+                ),
+              ),
+              if (profile.biography != null && profile.biography!.isNotEmpty) ...[
+                const SizedBox(height: 8),
                 Text(
-                  profile.fullName,
+                  profile.biography!,
                   textAlign: TextAlign.center,
-                  style: AppTypography.body.copyWith(
+                  style: AppTypography.caption.copyWith(
                     color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
                   ),
                 ),
-              ],
-              if (profile.biography != null && profile.biography!.isNotEmpty) ...[
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    profile.biography!,
-                    textAlign: TextAlign.center,
-                    maxLines: 4,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.caption.copyWith(
-                      color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 10),
+                const SizedBox(height: 8),
+              ] else
+                const SizedBox(height: 4),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -332,7 +303,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
                   ],
                 ],
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -491,54 +462,48 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
           showRetry = true;
           break;
         default:
-          message = t('error.server_error');
-          icon = Icons.cloud_off_outlined;
+          message = error.message;
+          icon = Icons.error_outline;
           showRetry = true;
       }
     } else {
-      message = t('error.server_error');
-      icon = Icons.cloud_off_outlined;
+      message = error.toString();
+      icon = Icons.error_outline;
       showRetry = true;
     }
 
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(32),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 64, color: AppColors.error),
-              const SizedBox(height: 16),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 260),
-                child: Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: AppTypography.body.copyWith(color: AppColors.error),
+        child: Column(
+          children: [
+            Icon(icon, size: 64, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: AppTypography.body.copyWith(color: AppColors.error),
+            ),
+            if (showRetry) ...[
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () {
+                  final username = _searchController.text.trim();
+                  if (username.isNotEmpty) {
+                    _search();
+                  }
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(t('common.retry')),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
-              if (showRetry) ...[
-                const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    final username = _searchController.text.trim();
-                    if (username.isNotEmpty) {
-                      _search();
-                    }
-                  },
-                  icon: const Icon(Icons.refresh),
-                  label: Text(t('common.retry')),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ],
             ],
-          ),
+          ],
         ),
       ),
     );

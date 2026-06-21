@@ -35,9 +35,8 @@ final searchQueryProvider = StateProvider<String>((ref) => '');
 
 class AnalysisNotifier extends StateNotifier<AsyncValue<InstagramProfile?>> {
   final AnalysisRepository _repository;
-  final Ref _ref;
 
-  AnalysisNotifier(this._repository, this._ref) : super(const AsyncValue.data(null));
+  AnalysisNotifier(this._repository) : super(const AsyncValue.data(null));
 
   Future<void> analyzeProfile(String username) async {
     state = const AsyncValue.loading();
@@ -45,7 +44,6 @@ class AnalysisNotifier extends StateNotifier<AsyncValue<InstagramProfile?>> {
     state = result;
     if (result.hasValue) {
       await _repository.saveSearchHistory(result.requireValue);
-      _ref.invalidate(searchHistoryProvider);
     }
   }
 
@@ -56,5 +54,5 @@ class AnalysisNotifier extends StateNotifier<AsyncValue<InstagramProfile?>> {
 
 final analysisNotifierProvider = StateNotifierProvider<AnalysisNotifier, AsyncValue<InstagramProfile?>>((ref) {
   final repository = ref.watch(analysisRepositoryProvider);
-  return AnalysisNotifier(repository, ref);
+  return AnalysisNotifier(repository);
 });
