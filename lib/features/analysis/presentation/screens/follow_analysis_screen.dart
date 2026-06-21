@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../../core/localization/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -24,7 +26,17 @@ class FollowAnalysisScreen extends ConsumerWidget {
     String t(String key) => Strings.tr(key, lang: lang);
 
     return Scaffold(
-      appBar: AppBar(title: Text('@$username')),
+      appBar: AppBar(
+        title: Text('@$username'),
+        actions: [
+          if (analysisAsync.valueOrNull != null)
+            IconButton(
+              onPressed: () => _shareSummary(analysisAsync.value!, lang),
+              icon: const Icon(Icons.share_outlined),
+              tooltip: t('follow.share_summary'),
+            ),
+        ],
+      ),
       body: analysisAsync.when(
         data: (analysis) => _buildContent(analysis, isDark, lang),
         loading: () => const FollowAnalysisShimmer(),
@@ -53,10 +65,31 @@ class FollowAnalysisScreen extends ConsumerWidget {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(32),
-              child: Text(
-                msg,
-                textAlign: TextAlign.center,
-                style: AppTypography.body.copyWith(color: AppColors.error),
+              child: GlassCard(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        err is ApiException && err.code == 'PRIVATE_ACCOUNT'
+                            ? Icons.lock_outline
+                            : Icons.error_outline,
+                        size: 64,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: 16),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 260),
+                        child: Text(
+                          msg,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.body.copyWith(color: AppColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           );
@@ -81,15 +114,48 @@ class FollowAnalysisScreen extends ConsumerWidget {
           ],
           _buildStatRow(analysis, isDark, lang),
           const SizedBox(height: 24),
-          _ExpandableSection(title: t('follow.not_following_back'), followers: analysis.notFollowingBack, accentColor: AppColors.error, isDark: isDark, lang: lang),
+          _ExpandableSection(
+            title: t('follow.not_following_back'),
+            followers: analysis.notFollowingBack,
+            accentColor: AppColors.error,
+            isDark: isDark,
+            lang: lang,
+          ),
           const SizedBox(height: 16),
-          _ExpandableSection(title: t('follow.not_followed'), followers: analysis.notFollowedByUser, accentColor: AppColors.accent, isDark: isDark, lang: lang),
+          _ExpandableSection(
+            title: t('follow.not_followed'),
+            followers: analysis.notFollowedByUser,
+            accentColor: AppColors.accent,
+            isDark: isDark,
+            lang: lang,
+          ),
           const SizedBox(height: 16),
-          _ExpandableSection(title: t('follow.mutual'), followers: analysis.mutualFollowers, accentColor: AppColors.success, isDark: isDark, lang: lang),
+          _ExpandableSection(
+            title: t('follow.mutual'),
+            followers: analysis.mutualFollowers,
+            accentColor: AppColors.success,
+            isDark: isDark,
+            lang: lang,
+          ),
           const SizedBox(height: 32),
         ],
       ),
     );
+  }
+
+  String _summaryText(FollowAnalysis analysis, String lang) {
+    final t = Strings.tr;
+    return [
+      'InstaCheck — @$username',
+      '',
+      '${t('follow.not_following_back', lang: lang)}: ${analysis.totalNotFollowingBack}',
+      '${t('follow.mutual', lang: lang)}: ${analysis.totalMutual}',
+      '${t('follow.not_followed', lang: lang)}: ${analysis.totalNotFollowedByUser}',
+    ].join('\n');
+  }
+
+  Future<void> _shareSummary(FollowAnalysis analysis, String lang) async {
+    await Share.share(_summaryText(analysis, lang));
   }
 
   Widget _buildStatRow(FollowAnalysis analysis, bool isDark, String lang) {
@@ -196,22 +262,73 @@ class _ExpandableSectionState extends State<_ExpandableSection> {
                 ),
               ),
               const SizedBox(width: 10),
-              Text(
-                widget.title,
-                style: AppTypography.subtitle.copyWith(
-                  color: widget.isDark ? AppColors.darkText : AppColors.lightText,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  widget.title,
+                  style: AppTypography.subtitle.copyWith(
+                    color: widget.isDark ? AppColors.darkText : AppColors.lightText,
+                  ),
                 ),
               ),
+              PopupMenuButton<String>(
+                tooltip: '',
+                onSelected: (value) async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  if (value == 'copy') {
+                    await Clipboard.setData(
+                      ClipboardData(text: followers.map((e) => e.username).join('\n')),
+                    );
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(content: Text(t('follow.copied', lang: widget.lang))),
+                      );
+                    }
+                  } else if (value == 'share') {
+                    await Share.share(
+                      followers.map((e) => '@${e.username}').join('\n'),
+                    );
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'copy',
+                    child: Text(t('follow.copy_usernames', lang: widget.lang)),
+                  ),
+                  PopupMenuItem(
+                    value: 'share',
+                    child: Text(t('follow.share_usernames', lang: widget.lang)),
+                  ),
+                ],
+                icon: Icon(
+                  Icons.more_horiz,
+                  color: widget.isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+                ),
+              ),
+            ],
+          ),
             ],
           ),
           if (followers.isEmpty) ...[
             const SizedBox(height: 16),
             Center(
-              child: Text(
-                t('follow.empty', lang: widget.lang),
-                style: AppTypography.body.copyWith(
-                  color: widget.isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.person_outline,
+                    size: 32,
+                    color: (widget.isDark ? AppColors.darkSubtext : AppColors.lightSubtext).withValues(alpha: 0.5),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    t('follow.empty', lang: widget.lang),
+                    style: AppTypography.body.copyWith(
+                      color: (widget.isDark ? AppColors.darkSubtext : AppColors.lightSubtext).withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ),
             ),
           ] else ...[
