@@ -1,0 +1,35 @@
+workflows:
+  ios:
+    name: iOS Release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - flutter clean
+      - flutter pub get
+      - flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/iphoneos/*.app
+      - build/ios/iphoneos/*.ipa
+    publishing:
+      email:
+        recipients:
+          - islam@example.com
+  android:
+    name: Android Release
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      flutter: stable
+    scripts:
+      - flutter clean
+      - flutter pub get
+      - flutter build apk --split-per-abi
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+    publishing:
+      email:
+        recipients:
+          - islam@example.com
