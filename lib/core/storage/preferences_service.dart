@@ -17,6 +17,8 @@ class PreferencesService {
 
   Future<void> setDarkMode(bool value) => _prefs!.setBool(_darkModeKey, value);
 
+  bool get hasLanguagePreference => _prefs?.containsKey(_languageKey) ?? false;
+
   String get language => _prefs?.getString(_languageKey) ?? 'en';
 
   Future<void> setLanguage(String value) => _prefs!.setString(_languageKey, value);

@@ -23,6 +23,16 @@ void main() async {
   final prefs = PreferencesService();
   await prefs.init();
 
+  if (!prefs.hasLanguagePreference) {
+    final deviceLang = WidgetsBinding.instance.platformDispatcher.locale.languageCode.toLowerCase();
+    final supportedLang = switch (deviceLang) {
+      'ru' => 'ru',
+      'en' => 'en',
+      _ => 'en',
+    };
+    await prefs.setLanguage(supportedLang);
+  }
+
   runApp(
     ProviderScope(
       overrides: [
