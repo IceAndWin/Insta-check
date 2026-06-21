@@ -81,7 +81,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
 
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(savedAccountsProvider);
+          },
+          child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,6 +154,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
             ],
           ),
         ),
+      ),
       ),
     );
   }
