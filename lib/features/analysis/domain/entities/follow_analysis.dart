@@ -1,3 +1,23 @@
+class AnalysisMetadata {
+  final int sampled;
+  final int totalAvailable;
+  final bool isApproximate;
+
+  const AnalysisMetadata({
+    required this.sampled,
+    this.totalAvailable = 0,
+    this.isApproximate = false,
+  });
+
+  factory AnalysisMetadata.fromJson(Map<String, dynamic> json) {
+    return AnalysisMetadata(
+      sampled: json['sampled'] as int? ?? 300,
+      totalAvailable: json['totalAvailable'] as int? ?? 0,
+      isApproximate: json['isApproximate'] as bool? ?? false,
+    );
+  }
+}
+
 class FollowAnalysis {
   final List<Follower> notFollowingBack;
   final List<Follower> notFollowedByUser;
@@ -6,6 +26,7 @@ class FollowAnalysis {
   final List<Follower> lostFollowers;
   final List<Follower> mostActive;
   final DateTime analyzedAt;
+  final AnalysisMetadata? metadata;
 
   const FollowAnalysis({
     this.notFollowingBack = const [],
@@ -15,6 +36,7 @@ class FollowAnalysis {
     this.lostFollowers = const [],
     this.mostActive = const [],
     required this.analyzedAt,
+    this.metadata,
   });
 
   int get totalNotFollowingBack => notFollowingBack.length;
@@ -45,6 +67,7 @@ class FollowAnalysis {
       lostFollowers: (json['lostFollowers'] as List?)?.map((e) => Follower.fromJson(e)).toList() ?? [],
       mostActive: (json['mostActive'] as List?)?.map((e) => Follower.fromJson(e)).toList() ?? [],
       analyzedAt: DateTime.parse(json['analyzedAt'] as String),
+      metadata: json['metadata'] != null ? AnalysisMetadata.fromJson(json['metadata'] as Map<String, dynamic>) : null,
     );
   }
 }

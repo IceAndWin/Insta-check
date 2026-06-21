@@ -25,11 +25,18 @@ class FollowerItem(BaseModel):
     followedAt: Optional[datetime] = None
 
 
+class AnalysisMetadata(BaseModel):
+    sampled: int
+    totalAvailable: int = 0
+    isApproximate: bool = False
+
+
 class FollowAnalysisResponse(BaseModel):
     notFollowingBack: list[FollowerItem]
     notFollowedByUser: list[FollowerItem]
     mutualFollowers: list[FollowerItem]
     analyzedAt: datetime
+    metadata: AnalysisMetadata | None = None
 
 
 class MediaItem(BaseModel):

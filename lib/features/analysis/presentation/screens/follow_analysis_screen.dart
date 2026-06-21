@@ -8,6 +8,7 @@ import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/widgets/profile_avatar.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../data/datasources/analysis_api_source.dart';
 import '../providers/analysis_provider.dart';
 import '../../domain/entities/follow_analysis.dart';
 
@@ -28,12 +29,39 @@ class FollowAnalysisScreen extends ConsumerWidget {
       body: analysisAsync.when(
         data: (analysis) => _buildContent(analysis, isDark, lang),
         loading: () => const FollowAnalysisShimmer(),
-        error: (err, _) => Center(
-          child: Text(
-            '${t('common.error')}: $err',
-            style: AppTypography.body.copyWith(color: AppColors.error),
-          ),
-        ),
+        error: (err, _) {
+          String msg;
+          if (err is ApiException) {
+            switch (err.code) {
+              case 'USER_NOT_FOUND':
+                msg = t('error.user_not_found');
+                break;
+              case 'CHALLENGE_REQUIRED':
+                msg = t('error.challenge_required');
+                break;
+              case 'RATE_LIMITED':
+                msg = t('error.rate_limited');
+                break;
+              case 'PRIVATE_ACCOUNT':
+                msg = t('error.private_account');
+                break;
+              default:
+                msg = err.message;
+            }
+          } else {
+            msg = err.toString();
+          }
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                msg,
+                textAlign: TextAlign.center,
+                style: AppTypography.body.copyWith(color: AppColors.error),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -41,11 +69,17 @@ class FollowAnalysisScreen extends ConsumerWidget {
   Widget _buildContent(FollowAnalysis analysis, bool isDark, String lang) {
     String t(String key) => Strings.tr(key, lang: lang);
 
+    final meta = analysis.metadata;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (meta != null) ...[
+            _buildMetadataBadge(meta, isDark, lang),
+            const SizedBox(height: 12),
+          ],
           _buildStatRow(analysis, isDark, lang),
           const SizedBox(height: 24),
           _ExpandableSection(title: t('follow.not_following_back'), followers: analysis.notFollowingBack, accentColor: AppColors.error, isDark: isDark, lang: lang),
@@ -70,6 +104,25 @@ class FollowAnalysisScreen extends ConsumerWidget {
         const SizedBox(width: 8),
         _miniStat(t('follow.not_followed').split(' ')[0], analysis.totalNotFollowedByUser, AppColors.accent, isDark),
       ],
+    );
+  }
+
+  Widget _buildMetadataBadge(AnalysisMetadata meta, bool isDark, String lang) {
+    final color = isDark ? AppColors.darkSubtext : AppColors.lightSubtext;
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(
+            meta.isApproximate
+                ? 'Sampled ${meta.sampled} (~${meta.totalAvailable} available)'
+                : 'Sampled ${meta.sampled}',
+            style: AppTypography.caption.copyWith(color: color),
+          ),
+        ],
+      ),
     );
   }
 

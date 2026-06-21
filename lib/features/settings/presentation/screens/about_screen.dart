@@ -61,11 +61,34 @@ class AboutScreen extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Text(
-              Strings.tr('about.made_by', lang: lang),
-              style: AppTypography.caption.copyWith(
-                color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Сотрудничество: ',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark
+                        ? AppColors.darkSubtext
+                        : AppColors.lightSubtext,
+                  ),
+                ),
+                Icon(
+                  Icons.telegram,
+                  size: 18,
+                  color: isDark
+                      ? AppColors.darkSubtext
+                      : AppColors.lightSubtext,
+                ),
+
+                Text(
+                  '@foller2',
+                  style: AppTypography.caption.copyWith(
+                    color: isDark
+                        ? AppColors.darkSubtext
+                        : AppColors.lightSubtext,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 24),
           ],

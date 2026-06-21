@@ -1,13 +1,11 @@
 import os
-import sys
 import logging
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 
-# Загружаем .env из папки бэкенда (на случай если запуск из другой директории)
 backend_dir = Path(__file__).resolve().parent.parent
 dotenv_path = backend_dir / ".env"
 load_dotenv(dotenv_path)
@@ -25,12 +23,13 @@ if not os.getenv("INSTAGRAM_USERNAME") or not os.getenv("INSTAGRAM_PASSWORD"):
     )
 
 from app.instagram.client import InstagramClient
-from app.models.schemas import ProfileResponse, FollowAnalysisResponse, MediaResponse, ErrorResponse
+from app.models.schemas import ProfileResponse, FollowAnalysisResponse, MediaResponse
+from app.exceptions import AppError
 
 app = FastAPI(
     title="InstaCheck API",
     description="Backend for Instagram profile analysis",
-    version="1.0.0",
+    version="1.1.0",
 )
 
 app.add_middleware(
@@ -40,6 +39,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(request, exc: AppError):
+    body = {"detail": exc.message, "code": exc.code}
+    if exc.retry_after is not None:
+        body["retryAfter"] = exc.retry_after
+    status = 429 if exc.code == "RATE_LIMITED" else 400
+    return JSONResponse(status_code=status, content=body)
 
 
 @app.get("/health")
@@ -52,55 +60,49 @@ def health():
     }
 
 
-@app.get(
-    "/api/profile/{username}",
-    response_model=ProfileResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
+@app.get("/api/profile/{username}", response_model=ProfileResponse)
 def get_profile(username: str):
     try:
         client = InstagramClient.get_instance()
         data = client.get_profile(username)
         return ProfileResponse(**data)
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(status_code=500, content={"detail": str(e), "code": "CONFIG_ERROR"})
+    except AppError:
+        raise
     except Exception as e:
         logger.error(f"Error fetching profile @{username}: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        return JSONResponse(status_code=500, content={"detail": "Internal server error", "code": "INTERNAL"})
 
 
-@app.get(
-    "/api/media/{username}",
-    response_model=MediaResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
+@app.get("/api/media/{username}", response_model=MediaResponse)
 def get_user_media(username: str, amount: int = 30):
     try:
         client = InstagramClient.get_instance()
         data = client.get_user_media(username, amount=min(amount, 100))
         return MediaResponse(**data)
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(status_code=500, content={"detail": str(e), "code": "CONFIG_ERROR"})
+    except AppError:
+        raise
     except Exception as e:
         logger.error(f"Error fetching media @{username}: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        return JSONResponse(status_code=500, content={"detail": "Internal server error", "code": "INTERNAL"})
 
 
-@app.get(
-    "/api/follow-analysis/{username}",
-    response_model=FollowAnalysisResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
+@app.get("/api/follow-analysis/{username}", response_model=FollowAnalysisResponse)
 def get_follow_analysis(username: str, amount: int = 300):
     try:
         client = InstagramClient.get_instance()
         data = client.get_follow_analysis(username, amount=min(amount, 5000))
         return FollowAnalysisResponse(**data)
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return JSONResponse(status_code=500, content={"detail": str(e), "code": "CONFIG_ERROR"})
+    except AppError:
+        raise
     except Exception as e:
         logger.error(f"Error analyzing @{username}: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        return JSONResponse(status_code=500, content={"detail": "Internal server error", "code": "INTERNAL"})
 
 
 @app.get("/api/proxy-image")
@@ -110,13 +112,15 @@ def proxy_image(url: str = Query(...)):
         client._ensure_logged_in()
         session = client._client.private
         resp = session.get(url, timeout=30)
-        return Response(
+        return JSONResponse(
             content=resp.content,
             media_type=resp.headers.get("content-type", "image/jpeg"),
         )
+    except AppError:
+        raise
     except Exception as e:
         logger.error(f"Image proxy failed: {e}")
-        raise HTTPException(status_code=400, detail="Failed to load image")
+        return JSONResponse(status_code=400, content={"detail": "Failed to load image", "code": "PROXY_FAILED"})
 
 
 if __name__ == "__main__":

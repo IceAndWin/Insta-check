@@ -11,6 +11,7 @@ import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/widgets/profile_avatar.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
+import '../../data/datasources/analysis_api_source.dart';
 import '../providers/analysis_provider.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -142,8 +143,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
                   if (profile == null) return _buildHistorySection(isDark, lang);
                   return _buildProfileResult(profile, isDark, lang);
                 },
-                loading: () => const ListShimmer(itemCount: 4),
-                error: (err, _) => _buildError(err.toString(), isDark),
+                loading: () => const ProfileShimmer(),
+                error: (err, _) => _buildError(err, isDark, lang),
               ),
             ],
           ),
@@ -411,19 +412,94 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
     );
   }
 
-  Widget _buildError(String error, bool isDark) {
+  Widget _buildError(Object error, bool isDark, String lang) {
+    String t(String key) => Strings.tr(key, lang: lang);
+
+    String message;
+    IconData icon;
+    bool showRetry = false;
+
+    if (error is ApiException) {
+      switch (error.code) {
+        case 'USER_NOT_FOUND':
+          message = t('error.user_not_found');
+          icon = Icons.person_off_outlined;
+          break;
+        case 'CHALLENGE_REQUIRED':
+          message = t('error.challenge_required');
+          icon = Icons.verified_user_outlined;
+          break;
+        case 'RATE_LIMITED':
+          message = t('error.rate_limited');
+          icon = Icons.timer_outlined;
+          showRetry = true;
+          break;
+        case 'SESSION_EXPIRED':
+          message = t('error.session_expired');
+          icon = Icons.logout;
+          showRetry = true;
+          break;
+        case 'SERVER_ERROR':
+          message = t('error.server_error');
+          icon = Icons.cloud_off_outlined;
+          showRetry = true;
+          break;
+        case 'CONNECTION_ERROR':
+          message = t('error.connection_error');
+          icon = Icons.wifi_off_outlined;
+          showRetry = true;
+          break;
+        case 'TWO_FACTOR_REQUIRED':
+          message = t('error.two_factor_required');
+          icon = Icons.security_outlined;
+          break;
+        case 'LOGIN_FAILED':
+          message = t('error.login_failed');
+          icon = Icons.lock_outline;
+          showRetry = true;
+          break;
+        default:
+          message = error.message;
+          icon = Icons.error_outline;
+          showRetry = true;
+      }
+    } else {
+      message = error.toString();
+      icon = Icons.error_outline;
+      showRetry = true;
+    }
+
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           children: [
-            Icon(Icons.error_outline, size: 64, color: AppColors.error),
+            Icon(icon, size: 64, color: AppColors.error),
             const SizedBox(height: 16),
             Text(
-              error,
+              message,
               textAlign: TextAlign.center,
               style: AppTypography.body.copyWith(color: AppColors.error),
             ),
+            if (showRetry) ...[
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: () {
+                  final username = _searchController.text.trim();
+                  if (username.isNotEmpty) {
+                    _search();
+                  }
+                },
+                icon: const Icon(Icons.refresh),
+                label: Text(t('common.retry')),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.error,
+                  side: const BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
           ],
         ),
       ),
