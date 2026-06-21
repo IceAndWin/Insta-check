@@ -27,7 +27,7 @@ class FollowAnalysisScreen extends ConsumerWidget {
       appBar: AppBar(title: Text('@$username')),
       body: analysisAsync.when(
         data: (analysis) => _buildContent(analysis, isDark, lang),
-        loading: () => const ProfileShimmer(),
+        loading: () => const FollowAnalysisShimmer(),
         error: (err, _) => Center(
           child: Text(
             '${t('common.error')}: $err',

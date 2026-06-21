@@ -66,6 +66,36 @@ class ProfileShimmer extends StatelessWidget {
   }
 }
 
+class FollowAnalysisShimmer extends StatelessWidget {
+  const FollowAnalysisShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: ShimmerLoading(height: 72)),
+              SizedBox(width: 8),
+              Expanded(child: ShimmerLoading(height: 72)),
+              SizedBox(width: 8),
+              Expanded(child: ShimmerLoading(height: 72)),
+            ],
+          ),
+          SizedBox(height: 24),
+          ShimmerLoading(height: 220),
+          SizedBox(height: 16),
+          ShimmerLoading(height: 220),
+          SizedBox(height: 16),
+          ShimmerLoading(height: 220),
+        ],
+      ),
+    );
+  }
+}
+
 class ListShimmer extends StatelessWidget {
   final int itemCount;
 

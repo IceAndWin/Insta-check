@@ -142,7 +142,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
                   if (profile == null) return _buildHistorySection(isDark, lang);
                   return _buildProfileResult(profile, isDark, lang);
                 },
-                loading: () => const ProfileShimmer(),
+                loading: () => const ListShimmer(itemCount: 4),
                 error: (err, _) => _buildError(err.toString(), isDark),
               ),
             ],
@@ -239,7 +239,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
                   },
                 );
               },
-              loading: () => const ProfileShimmer(),
+              loading: () => const ListShimmer(itemCount: 5),
               error: (_, __) => const SizedBox(),
             ),
       ],

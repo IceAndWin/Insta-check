@@ -307,7 +307,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ),
                   );
                 },
-                loading: () => const ProfileShimmer(),
+                loading: () => const ListShimmer(itemCount: 6),
                 error: (err, _) => Center(child: Text('$err')),
               ),
             ),
