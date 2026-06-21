@@ -11,9 +11,9 @@ final darkModeProvider = StateNotifierProvider<DarkModeNotifier, bool>((ref) {
   return DarkModeNotifier(prefs);
 });
 
-final onboardingDoneProvider = StateProvider<bool>((ref) {
+final onboardingDoneProvider = StateNotifierProvider<OnboardingNotifier, bool>((ref) {
   final prefs = ref.watch(preferencesServiceProvider);
-  return prefs.isOnboardingDone;
+  return OnboardingNotifier(prefs);
 });
 
 final notificationsEnabledProvider = StateProvider<bool>((ref) {
@@ -39,6 +39,17 @@ class DarkModeNotifier extends StateNotifier<bool> {
   Future<void> setDarkMode(bool value) async {
     state = value;
     await _prefs.setDarkMode(value);
+  }
+}
+
+class OnboardingNotifier extends StateNotifier<bool> {
+  final PreferencesService _prefs;
+
+  OnboardingNotifier(this._prefs) : super(_prefs.isOnboardingDone);
+
+  Future<void> setDone(bool value) async {
+    state = value;
+    await _prefs.setOnboardingDone(value);
   }
 }
 
