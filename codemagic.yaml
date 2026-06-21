@@ -16,7 +16,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - islam@example.com
+          - islammuhtar20@gmail.com
   android:
     name: Android Release
     instance_type: mac_mini_m2
@@ -32,4 +32,4 @@ workflows:
     publishing:
       email:
         recipients:
-          - islam@example.com
+          - islammuhtar20@gmail.com
