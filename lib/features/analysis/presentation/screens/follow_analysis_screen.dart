@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/localization/strings.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../../../core/utils/helpers.dart';
 import '../../../../core/widgets/glass_card.dart';
 import '../../../../core/widgets/profile_avatar.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
@@ -265,15 +264,15 @@ class _ExpandableSectionState extends State<_ExpandableSection> {
 
   Widget _followerTile(Follower follower) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
           ProfileAvatar(
             imageUrl: follower.profilePicUrl,
-            size: 40,
+            size: 28,
             initials: follower.username[0],
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,13 +281,14 @@ class _ExpandableSectionState extends State<_ExpandableSection> {
                   children: [
                     Text(
                       follower.username,
-                      style: AppTypography.label.copyWith(
+                      style: AppTypography.caption.copyWith(
                         color: widget.isDark ? AppColors.darkText : AppColors.lightText,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                     if (follower.isVerified) ...[
-                      const SizedBox(width: 4),
-                      Icon(Icons.verified, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 3),
+                      Icon(Icons.verified, size: 12, color: AppColors.primary),
                     ],
                   ],
                 ),
@@ -297,26 +297,12 @@ class _ExpandableSectionState extends State<_ExpandableSection> {
                     follower.fullName!,
                     style: AppTypography.caption.copyWith(
                       color: widget.isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-                    ),
-                  ),
-                if (follower.followedAt != null)
-                  Text(
-                    Helpers.formatRelativeTime(follower.followedAt!),
-                    style: AppTypography.caption.copyWith(
-                      color: widget.isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
                       fontSize: 10,
                     ),
                   ),
               ],
             ),
           ),
-          if (follower.recentLikes != null)
-            Text(
-              '${follower.recentLikes} likes',
-              style: AppTypography.caption.copyWith(
-                color: widget.isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-              ),
-            ),
         ],
       ),
     );

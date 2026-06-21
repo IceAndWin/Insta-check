@@ -166,83 +166,80 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
           ),
         ),
         const SizedBox(height: 16),
-        ref.watch(savedAccountsProvider).when(
-              data: (accounts) {
-                if (accounts.isEmpty) {
-                  return GlassCard(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.search_rounded,
-                              size: 64,
-                              color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              t('search.no_saved'),
-                              style: AppTypography.body.copyWith(
-                                color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-                              ),
-                            ),
-                          ],
+        () {
+          final accounts = ref.watch(savedAccountsProvider).valueOrNull ?? [];
+          if (accounts.isEmpty) {
+            return GlassCard(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.search_rounded,
+                        size: 64,
+                        color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        t('search.no_saved'),
+                        style: AppTypography.body.copyWith(
+                          color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+          return ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: accounts.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final account = accounts[index];
+              return GlassCard(
+                onTap: () {
+                  ref.read(analysisNotifierProvider.notifier).analyzeProfile(account.username);
+                },
+                child: Row(
+                  children: [
+                    ProfileAvatar(
+                      imageUrl: account.profilePicUrl,
+                      initials: account.username[0],
                     ),
-                  );
-                }
-                return ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: accounts.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, index) {
-                    final account = accounts[index];
-                    return GlassCard(
-                      onTap: () {
-                        ref.read(analysisNotifierProvider.notifier).analyzeProfile(account.username);
-                      },
-                      child: Row(
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          ProfileAvatar(
-                            imageUrl: account.profilePicUrl,
-                            initials: account.username[0],
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  account.username,
-                                  style: AppTypography.label.copyWith(
-                                    color: isDark ? AppColors.darkText : AppColors.lightText,
-                                  ),
-                                ),
-                                Text(
-                                  account.fullName,
-                                  style: AppTypography.caption.copyWith(
-                                    color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            account.username,
+                            style: AppTypography.label.copyWith(
+                              color: isDark ? AppColors.darkText : AppColors.lightText,
                             ),
                           ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+                          Text(
+                            account.fullName,
+                            style: AppTypography.caption.copyWith(
+                              color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                );
-              },
-              loading: () => const ListShimmer(itemCount: 5),
-              error: (_, __) => const SizedBox(),
-            ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      color: isDark ? AppColors.darkSubtext : AppColors.lightSubtext,
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        }(),
       ],
     );
   }

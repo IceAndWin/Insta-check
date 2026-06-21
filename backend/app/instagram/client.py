@@ -192,15 +192,27 @@ class InstagramClient:
                 lambda: self._client.user_info_by_username(username)
             )
             profile_pic = str(user.profile_pic_url_hd or user.profile_pic_url or "")
+            is_private = bool(user.is_private)
+            followers = user.follower_count or 0
+            following = user.following_count or 0
+            posts = user.media_count or 0
+            if not is_private and followers == 0 and following == 0 and posts == 0:
+                try:
+                    uid = self._client.user_id_from_username(username)
+                    test = self._client.user_followers(uid, amount=1)
+                    if not test:
+                        is_private = True
+                except Exception:
+                    is_private = True
             return {
                 "username": user.username or username,
                 "fullName": user.full_name or "",
                 "biography": user.biography or "",
                 "profilePicUrl": profile_pic,
-                "followersCount": user.follower_count or 0,
-                "followingCount": user.following_count or 0,
-                "postsCount": user.media_count or 0,
-                "isPrivate": bool(user.is_private),
+                "followersCount": followers,
+                "followingCount": following,
+                "postsCount": posts,
+                "isPrivate": is_private,
                 "isVerified": bool(user.is_verified),
                 "externalUrl": getattr(user, "external_url", None) or "",
                 "businessCategory": getattr(user, "business_category_name", None)
@@ -217,9 +229,16 @@ class InstagramClient:
     def get_follow_analysis(self, username: str, amount: int = 300) -> dict:
         logger.info(f"Fetching follow analysis: @{username} (amount={amount})")
         try:
-            user_id = self._api_call(
-                lambda: self._client.user_id_from_username(username)
+            user_info = self._api_call(
+                lambda: self._client.user_info_by_username(username)
             )
+            if user_info.is_private:
+                raise AppError(
+                    f"Account @{username} is private. Follow analysis is "
+                    "not available for private accounts.",
+                    code="PRIVATE_ACCOUNT",
+                )
+            user_id = user_info.pk
             compare_amount = min(max(amount * 3, 300), 5000)
             logger.info(f"Using compare_amount={compare_amount} for @{username}")
 
