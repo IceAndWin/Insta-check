@@ -46,4 +46,5 @@ app.*.map.json
 
 # Local environment and machine-specific files
 backend/.env
+backend/.instagrapi-session.json
 .metadata

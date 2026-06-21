@@ -2,7 +2,9 @@ import os
 import base64
 import tempfile
 import time
+import json
 import logging
+from pathlib import Path
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
@@ -26,6 +28,10 @@ class InstagramClient:
     def __init__(self):
         self.username = os.getenv("INSTAGRAM_USERNAME", "")
         self.password = os.getenv("INSTAGRAM_PASSWORD", "")
+        self.session_path = Path(os.getenv(
+            "INSTAGRAM_SESSION_FILE",
+            str(Path(__file__).resolve().parents[2] / ".instagrapi-session.json")
+        ))
         if not self.username or not self.password:
             raise ValueError(
                 "INSTAGRAM_USERNAME and INSTAGRAM_PASSWORD must be set in .env "
@@ -39,18 +45,68 @@ class InstagramClient:
             cls._instance = cls()
         return cls._instance
 
+    def _new_client(self) -> Client:
+        client = Client()
+        client.delay_range = [0.5, 1.0]
+        return client
+
+    def _session_exists(self) -> bool:
+        return self.session_path.exists() and self.session_path.stat().st_size > 0
+
+    def _save_session(self):
+        if self._client is None:
+            return
+        try:
+            self.session_path.parent.mkdir(parents=True, exist_ok=True)
+            settings = self._client.get_settings()
+            with open(self.session_path, "w", encoding="utf-8") as f:
+                json.dump(settings, f)
+            logger.info(f"Instagram session saved to {self.session_path}")
+        except Exception as e:
+            logger.warning(f"Failed to save Instagram session: {e}")
+
+    def _load_session(self) -> bool:
+        if not self._session_exists():
+            return False
+        try:
+            client = self._new_client()
+            with open(self.session_path, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+            client.set_settings(settings)
+            client.login(self.username, self.password)
+            client.get_timeline_feed()
+            self._client = client
+            self._last_login = time.time()
+            logger.info(f"Instagram session restored from {self.session_path}")
+            return True
+        except Exception as e:
+            logger.warning(f"Failed to restore Instagram session: {e}")
+            return False
+
     def _ensure_logged_in(self):
         now = time.time()
-        if self._client is None or (now - self._last_login) > self._login_interval:
+        if self._client is None:
+            if self._load_session():
+                return
             self._login()
+            return
+
+        if (now - self._last_login) > self._login_interval:
+            try:
+                self._client.get_timeline_feed()
+                self._last_login = now
+            except Exception:
+                if self._load_session():
+                    return
+                self._login()
 
     def _login(self):
         logger.info("Logging in to Instagram...")
-        self._client = Client()
-        self._client.delay_range = [0.5, 1.0]
+        self._client = self._new_client()
         try:
             self._client.login(self.username, self.password)
             self._last_login = time.time()
+            self._save_session()
             # прогреваем сессию: делаем тестовый follower-запрос на свой аккаунт,
             # чтобы Instagram не throttled первый пользовательский запрос
             try:
