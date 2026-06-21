@@ -189,10 +189,18 @@ class InstagramClient:
         logger.info(f"Fetching profile: @{username}")
         try:
             user = self._api_call(
-                lambda: self._client.user_info_by_username(username)
+                lambda: self._client.user_info_by_username(username, use_cache=False)
             )
             profile_pic = str(user.profile_pic_url_hd or user.profile_pic_url or "")
             is_private = bool(user.is_private)
+            try:
+                if not is_private:
+                    user_v1 = self._api_call(
+                        lambda: self._client.user_info_by_username_v1(username)
+                    )
+                    is_private = bool(getattr(user_v1, "is_private", False))
+            except Exception:
+                pass
             followers = user.follower_count or 0
             following = user.following_count or 0
             posts = user.media_count or 0
@@ -229,7 +237,7 @@ class InstagramClient:
         logger.info(f"Fetching follow analysis: @{username} (amount={amount})")
         try:
             user_info = self._api_call(
-                lambda: self._client.user_info_by_username(username)
+                lambda: self._client.user_info_by_username(username, use_cache=False)
             )
             if user_info.is_private:
                 raise AppError(
