@@ -206,10 +206,19 @@ class InstagramClient:
             posts = user.media_count or 0
             if not is_private:
                 try:
-                    test = self._client.user_followers(user.pk, amount=1)
-                    if not test:
-                        is_private = True
+                    followers_probe = self._client.user_followers(user.pk, amount=1)
                 except Exception:
+                    followers_probe = None
+                try:
+                    following_probe = self._client.user_following(user.pk, amount=1)
+                except Exception:
+                    following_probe = None
+
+                followers_blocked = followers > 0 and not followers_probe
+                following_blocked = following > 0 and not following_probe
+                both_blocked = followers_probe is None and following_probe is None
+
+                if followers_blocked or following_blocked or both_blocked:
                     is_private = True
             return {
                 "username": user.username or username,
