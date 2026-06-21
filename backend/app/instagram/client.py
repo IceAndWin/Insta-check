@@ -257,6 +257,13 @@ class InstagramClient:
                 followers = f_followers.result()
                 following = f_following.result()
 
+            if not followers and not following:
+                raise AppError(
+                    f"Account @{username} is private or inaccessible. "
+                    "Follow analysis is not available.",
+                    code="PRIVATE_ACCOUNT",
+                )
+
             follower_ids = list(followers.keys())
             following_ids = list(following.keys())
             follower_set = set(follower_ids)
