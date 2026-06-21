@@ -166,19 +166,38 @@ class InstagramClient:
         logger.info(f"Fetching follow analysis: @{username} (amount={amount})")
         try:
             user_id = self._client.user_id_from_username(username)
+            compare_amount = min(max(amount * 3, 300), 5000)
+            logger.info(
+                f"Using compare_amount={compare_amount} for mutual analysis of @{username}"
+            )
 
             with ThreadPoolExecutor(max_workers=2) as pool:
-                f_followers = pool.submit(self._client.user_followers, user_id, amount=amount)
-                f_following = pool.submit(self._client.user_following, user_id, amount=amount)
+                f_followers = pool.submit(self._client.user_followers, user_id, amount=compare_amount)
+                f_following = pool.submit(self._client.user_following, user_id, amount=compare_amount)
                 followers = f_followers.result()
                 following = f_following.result()
 
-            follower_set = set(followers.keys())
-            following_set = set(following.keys())
+            follower_ids = list(followers.keys())
+            following_ids = list(following.keys())
+            follower_set = set(follower_ids)
+            following_set = set(following_ids)
 
-            not_following_back_ids = following_set - follower_set
-            not_followed_by_user_ids = follower_set - following_set
             mutual_ids = follower_set & following_set
+            limited_follower_set = set(follower_ids[:amount])
+            limited_following_set = set(following_ids[:amount])
+
+            not_following_back_ids = [uid for uid in following_ids[:amount] if uid not in follower_set]
+            not_followed_by_user_ids = [uid for uid in follower_ids[:amount] if uid not in following_set]
+            mutual_ranked_ids = [
+                uid for uid in follower_ids
+                if uid in mutual_ids and (uid in limited_follower_set or uid in limited_following_set)
+            ]
+            if len(mutual_ranked_ids) < amount:
+                extra_mutual_ids = [uid for uid in following_ids if uid in mutual_ids and uid not in mutual_ranked_ids]
+                for uid in extra_mutual_ids:
+                    mutual_ranked_ids.append(uid)
+                    if len(mutual_ranked_ids) >= amount:
+                        break
 
             all_users = {**followers, **following}
 
@@ -194,7 +213,7 @@ class InstagramClient:
             return {
                 "notFollowingBack": [_to_item(uid) for uid in not_following_back_ids],
                 "notFollowedByUser": [_to_item(uid) for uid in not_followed_by_user_ids],
-                "mutualFollowers": [_to_item(uid) for uid in mutual_ids],
+                "mutualFollowers": [_to_item(uid) for uid in mutual_ranked_ids[:amount]],
                 "analyzedAt": datetime.utcnow().isoformat(),
             }
         except ClientNotFoundError:
