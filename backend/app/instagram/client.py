@@ -196,10 +196,9 @@ class InstagramClient:
             followers = user.follower_count or 0
             following = user.following_count or 0
             posts = user.media_count or 0
-            if not is_private and followers == 0 and following == 0 and posts == 0:
+            if not is_private:
                 try:
-                    uid = self._client.user_id_from_username(username)
-                    test = self._client.user_followers(uid, amount=1)
+                    test = self._client.user_followers(user.pk, amount=1)
                     if not test:
                         is_private = True
                 except Exception:
